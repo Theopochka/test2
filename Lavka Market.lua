@@ -1,5 +1,5 @@
 script_name('Lavka Market')
-script_version('2.3')
+script_version('2.2')
 script_author('Theopka')
 
 local faicons = require('fAwesome6')
@@ -775,7 +775,7 @@ end
 	if imgui.Button(u8" Перезагрузить") then script_reload() end
 	imgui.SameLine()
 	if imgui.Button(u8" Выгрузить") then script_unload() end
-    if imgui.Button('Обновить(возможно зависание игры на 10-15 секунд)') then
+    if imgui.Button(u8'Обновить(возможно зависание игры на 10-15 секунд)') then
         updateScript(lmUrl, lmPath)
     end
 
