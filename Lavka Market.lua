@@ -1,6 +1,7 @@
 script_name('Lavka Market')
-script_version('2.2')
+script_version('2.4')
 script_author('Theopka')
+local VersionV = '2.4'
 
 local faicons = require('fAwesome6')
 local sampev = require("samp.events")
@@ -341,7 +342,7 @@ AutoReconnect = false,
 },
 
 eat = {
-    autoeat = true,
+    autoeat = false,
     eatchoice = 0,
 },
 cfgtheme = {
@@ -398,7 +399,7 @@ function check_update()
     currentVersionFile:close()
     local response = http.request(lmUrl)
     if response and response ~= currentVersion then
-        msg("У вас не актуальная версия! Для обновления перейдите во вкладку: Настройки")
+        msg("У вас не актуальная версия! Для обновления перейдите во вкладку: Информация")
     else
         msg("У вас актуальная версия скрипта.")
     end
@@ -453,14 +454,14 @@ local activation = new.char[255]((ini.cfg.activation))
 local activated = false
 
 local autoeat = new.bool(ini.eat.autoeat)
-local eat_choice = new.int(ini.eat.eatchoice)
-local method = {u8'Чипсы', u8'Оленина', u8'Рыба'}
-local items = imgui.new['const char*'][#method](method)
+local eatList = {u8"Чипсы", u8"Рыба", u8"Оленина"}
+local eatListNumber = new.int(ini.eat.eatchoice - 0)
+local eatListBuffer = new["const char*"][#eatList](eatList)
 
 local theme = new.int(ini.cfgtheme.theme)
 local themesList, stylesList = {}, {}
 
-local VersionV = '2.2'
+
 
 function iniSave()
 	ini.cfgtheme.theme = theme[0]
@@ -683,7 +684,7 @@ imgui.OnFrame(function() return CentralGlMenu[0] end,
   function(player)
     imgui.SetNextWindowPos(imgui.ImVec2(sizeX / 2, sizeY / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
     imgui.SetNextWindowSize(imgui.ImVec2(700, 350), imgui.Cond.FirstUseEver)
-    imgui.Begin(u8'Lavka Market || 2.2', CentralGlMenu)
+    imgui.Begin(u8'Lavka Market || '.. VersionV, CentralGlMenu)
 
  
     if Param then
@@ -713,7 +714,7 @@ imgui.CenterText(u8'Лог за: ' ..Param)
    
     for i = 1, #commands do
         if filter:PassFilter((commands[i])) then
-    imgui.Text((commands[i]))
+    imgui.Text(u8(commands[i]))
 end
     end
 end
@@ -757,7 +758,7 @@ imgui.SameLine()
 	if imgui.Button(u8" Сохранить") then
 		ini.cfg.activation = u8(str(activation))
 		cfg_save()
-		msg("Сохранено! Активация - "..ini.cfg.activation, -1)
+		msg("Сохранено! Активация - "..ini.cfg.activation, -0)
 		script_reload()
 	end
 imgui.Separator()
@@ -766,18 +767,12 @@ ini.eat.autoeat = autoeat[0]
 cfg_save()
 end
    if autoeat[0] then
-    if imgui.Combo(u8"Выберите нужную еду", eat_choice, items, #method) then
-        ini.eat.eatchoice = eat_choice[0]
-        cfg_save()
-    end
+    imgui.Combo(u8"Еда", eatListNumber, eatListBuffer, #eatList)
 end
 	imgui.Separator()
 	if imgui.Button(u8" Перезагрузить") then script_reload() end
 	imgui.SameLine()
 	if imgui.Button(u8" Выгрузить") then script_unload() end
-    if imgui.Button(u8'Обновить(возможно зависание игры на 10-15 секунд)') then
-        updateScript(lmUrl, lmPath)
-    end
 
 	    elseif tab == 4 then
 imgui.CenterText(u8'Version: ' ..VersionV)
@@ -788,6 +783,16 @@ imgui.CenterText(u8' Команды')
 imgui.Text(u8'/cent - Гл.Меню')
 imgui.Text(u8'/recon - Реконект')
 imgui.Text(u8'/calc - Калькулятор')
+
+imgui.Separator()
+imgui.CenterText(u8"Актуальная версия " ..VersionV)
+imgui.BulletText(u8"Фикс Автоеды")
+imgui.BulletText(u8"Фикс оторбражение в логах: ???")
+
+imgui.Separator()
+if imgui.Button(u8'Обновить(возможно зависание игры на 10-15 секунд)') then
+    updateScript(lmUrl, lmPath)
+end
 
 elseif tab == 5 then
     if imgui.Button(faicons("play") .. u8" Начать скуп ", imgui.ImVec2(-1, 30)) then
@@ -1064,16 +1069,19 @@ function sampev.onConnectionRejected()
 end
 
 function sampev.onDisplayGameText(style, time, text)
-    if text:find('You are hungry!') or text:find('You are very hungry!') then
-        if ini.cfg.eatchoice == 0 then
-            sampSendChat("/cheeps")
-        elseif ini.cfg.eatchoice == 1 then
-            sampSendChat("/jmeat")
-        elseif ini.cfg.eatchoice == 2 then
-            sampSendChat("/jfish")
+	if text:find('You are hungry!') or text:find('You are very hungry!') then
+        sampSendChat("/eat")
+        sampSendDialogResponse(9965, 1, ini.eat.eatchoice - 1, nil)
+    end
+end
+
+function sampev.onShowDialog(dialogId, style, title, button1, button2, text)
+    if ini.cfg.toggled then
+        if dialogId == 9965 then
+            sampSendDialogResponse(9965, 1, ini.eat.eatchoice - 1, 0)
+            end
         end
     end
-end 
 imgui.OnInitialize(function()
     decor()
 	for i, v in ipairs(themes) do table.insert(themesList, v.name) end
